@@ -92,6 +92,10 @@ input,select{font-family:inherit;font-size:16px;}
   overflow-y:auto;-webkit-overflow-scrolling:touch;
   padding:20px 18px calc(24px + var(--safe-b));
 }
+/* Sans barre du haut (accueil, reglages), le contenu passerait sous
+   l'heure et la batterie de l'iPhone : on lui rend sa place. */
+#topbar.hidden + #screens .screen{ padding-top:calc(20px + var(--safe-t)); }
+#topbar.hidden + #screens .screen.nopad{ padding-top:var(--safe-t); }
 .screen.active{display:flex;animation:fadein .22s ease;}
 @keyframes fadein{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
 .screen.nopad{padding:0;}
@@ -210,25 +214,58 @@ input[type=text]::placeholder{color:rgba(28,24,22,.38);font-weight:400;}
 /* ---------- swipe deck ---------- */
 #deckwrap{
   flex:1;position:relative;display:flex;flex-direction:column;
-  padding:12px 14px calc(10px + var(--safe-b));min-height:0;
+  padding:12px 14px calc(8px + var(--safe-b));min-height:0;
 }
 #deck{flex:1;position:relative;min-height:0;}
 .card{
   position:absolute;inset:0;border-radius:10px;overflow:hidden;
   border:3px solid var(--ink);background:var(--ink);
   box-shadow:0 10px 0 -4px rgba(28,24,22,.25),6px 6px 0 var(--ink);
-  will-change:transform;touch-action:none;
+  will-change:transform;
+}
+/* La carte defile sur elle-meme : l'affiche occupe tout l'ecran, les
+   infos arrivent dessous quand on glisse vers le haut. pan-y laisse le
+   defilement au navigateur et nous garde les gestes horizontaux. */
+.card-scroll{
+  height:100%;overflow:hidden;
+  -webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  touch-action:pan-y;scroll-behavior:smooth;
+}
+.card.top .card-scroll{overflow-y:auto;}
+.card-hero{
+  position:relative;height:100%;
   display:flex;flex-direction:column;justify-content:flex-end;
 }
 .card .poster{
   position:absolute;inset:0;background-size:cover;background-position:center;
   background-color:#2b2420;
 }
+.card-detail{
+  position:relative;background:#171310;color:var(--paper);
+  padding:20px 16px 26px;border-top:2px solid rgba(232,216,186,.15);
+}
+.card-detail .label{color:var(--paper);opacity:.55;}
+.card-detail .dt-block{margin-bottom:18px;}
+.card-detail .dt-syn{font-size:14px;line-height:1.55;}
+.card-detail .cast-item .ph{border-color:rgba(232,216,186,.5);background-color:#2b2420;}
+.card-detail .cast-item .nm2{color:var(--paper);}
+.card-detail .cast-item .ro{color:var(--paper);opacity:.55;}
+.card-detail .dt-crew{color:var(--paper);}
+.card-detail .chip{background:rgba(232,216,186,.12);color:var(--paper);border-color:rgba(232,216,186,.5);}
+.card-detail .trailer{box-shadow:none;border-color:rgba(232,216,186,.4);}
+.scroll-hint{
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--paper);opacity:.75;
+  margin-top:12px;padding-top:10px;border-top:1px solid rgba(232,216,186,.2);
+}
+.scroll-hint .ch{display:inline-block;animation:nudge 1.6s ease-in-out infinite;}
+@keyframes nudge{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
 .card .fade{
   position:absolute;inset:0;
   background:linear-gradient(to top,rgba(20,16,14,.96) 0%,rgba(20,16,14,.82) 26%,rgba(20,16,14,.12) 58%,rgba(20,16,14,.18) 100%);
 }
-.card .body{position:relative;padding:16px 16px 18px;color:var(--paper);}
+.card .body{position:relative;padding:16px 16px 14px;color:var(--paper);}
 .card .ttl{
   font-family:var(--font-display);font-size:24px;line-height:1.04;text-transform:uppercase;
   margin:0 0 7px;text-wrap:balance;
@@ -263,7 +300,7 @@ input[type=text]::placeholder{color:rgba(28,24,22,.38);font-weight:400;}
 .stamp.yes{left:16px;color:#6BD97A;border-color:#6BD97A;}
 .stamp.no{right:16px;color:#FF6B5A;border-color:#FF6B5A;transform:rotate(14deg);}
 #swipe-actions{
-  flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:16px;padding-top:14px;
+  flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:16px;padding-top:12px;
 }
 .round{
   width:62px;height:62px;border-radius:50%;border:3px solid var(--ink);
@@ -362,7 +399,7 @@ input[type=text]::placeholder{color:rgba(28,24,22,.38);font-weight:400;}
   position:absolute;inset:0;z-index:500;display:none;
   background:rgba(28,24,22,.93);color:var(--paper);
   flex-direction:column;align-items:center;justify-content:center;
-  padding:30px;text-align:center;
+  padding:calc(30px + var(--safe-t)) 30px calc(30px + var(--safe-b));text-align:center;
 }
 #matchpop.show{display:flex;animation:pop .3s ease;}
 @keyframes pop{from{opacity:0;transform:scale(.9);}to{opacity:1;transform:none;}}
@@ -381,7 +418,8 @@ input[type=text]::placeholder{color:rgba(28,24,22,.38);font-weight:400;}
 /* ---------- loader ---------- */
 #loader{
   position:absolute;inset:0;z-index:400;display:none;
-  background:var(--paper);flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:30px;text-align:center;
+  background:var(--paper);flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  padding:calc(30px + var(--safe-t)) 30px calc(30px + var(--safe-b));text-align:center;
 }
 #loader.show{display:flex;}
 .reel{
@@ -436,9 +474,13 @@ input[type=range]::-moz-range-thumb{
 
 a{color:var(--teal);}
 .sticky-bottom{
-  position:sticky;bottom:-1px;padding:12px 0 2px;
+  position:sticky;bottom:0;z-index:20;
+  /* la marge du haut compense exactement celle du bas : la barre colle
+     au bas de l'ecran sans jamais manger la fin de la liste */
+  margin:calc(40px + var(--safe-b)) -18px calc(-24px - var(--safe-b));
+  padding:12px 18px calc(14px + var(--safe-b));
   background:var(--paper);
-  box-shadow:0 -10px 14px -6px var(--paper), 0 -22px 0 0 var(--paper);
+  border-top:2px solid rgba(28,24,22,.14);
 }
 .sticky-bottom.push{margin-top:auto;}
 .empty{opacity:1;}
@@ -528,6 +570,15 @@ a{color:var(--teal);}
         <button class="bigchoice" data-type="both"><span class="e">🍿</span><span class="t">Les deux</span></button>
       </div>
 
+      <div class="field" id="type-runtime-box" style="margin-top:24px">
+        <span class="label">Temps dispo</span>
+        <input type="range" id="in-runtime" min="60" max="250" step="10" value="250">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="rangeval" id="runtime-val">Peu importe</span>
+          <span class="hint">max par film ou par épisode</span>
+        </div>
+      </div>
+
       <div class="sticky-bottom push">
         <button class="btn" id="btn-type-next" disabled>Valider</button>
         <p class="hint" id="type-wait" style="text-align:center;margin:10px 0 0;display:none">L'hôte est en train de choisir...</p>
@@ -539,6 +590,7 @@ a{color:var(--teal);}
       <p class="kicker">Étape 3</p>
       <h2 class="title">Tes critères à toi</h2>
       <p class="sub">Chacun remplit les siens. On croise tout ensuite pour trouver le terrain d'entente.</p>
+      <p class="tape" id="filters-format" style="margin-bottom:18px"></p>
 
       <div class="field">
         <span class="label">Tes abonnements</span>
@@ -550,15 +602,6 @@ a{color:var(--teal);}
         <span class="label">Tes envies de genre</span>
         <div class="chips" id="genres-list"></div>
         <p class="hint" style="margin-top:8px">Rien de coché = ouvert à tout.</p>
-      </div>
-
-      <div class="field">
-        <span class="label">Temps dispo</span>
-        <input type="range" id="in-runtime" min="60" max="250" step="10" value="250">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span class="rangeval" id="runtime-val">Peu importe</span>
-          <span class="hint">max par épisode ou par film</span>
-        </div>
       </div>
 
       <div class="divider"></div>
@@ -1054,15 +1097,15 @@ function loadProviders(){
    - plateformes  = tout ce a quoi le groupe a acces (union)
    - genres       = ce qui met tout le monde d'accord (intersection),
                     et si personne ne se croise, on prend l'union
-   - duree        = la contrainte la plus serree du groupe (min)
+   - duree        = celle choisie par l'hote avec le format
    -------------------------------------------------------------------- */
-function mergeCriteria(participants){
+function mergeCriteria(participants, partyRuntime){
   var ids = Object.keys(participants || {});
-  var provSet = {}, runtime = 999, genreLists = [];
+  var provSet = {}, genreLists = [];
+  var runtime = (typeof partyRuntime === "number" && partyRuntime) ? partyRuntime : 999;
   ids.forEach(function(id){
     var f = (participants[id] && participants[id].filters) || {};
     (f.providers || []).forEach(function(p){ provSet[p] = 1; });
-    if(typeof f.runtime === "number" && f.runtime < runtime) runtime = f.runtime;
     if(f.genres && f.genres.length) genreLists.push(f.genres);
   });
   var genres = [];
@@ -1179,8 +1222,8 @@ function enrich(cands, crit, wanted){
 }
 
 /* construit le paquet de cartes partage par toute la party */
-function buildDeck(participants, contentType){
-  var crit = mergeCriteria(participants);
+function buildDeck(participants, contentType, partyRuntime){
+  var crit = mergeCriteria(participants, partyRuntime);
   var kinds = contentType === "both" ? ["movie","tv"] : [contentType];
 
   /* on pioche dans les 8 premieres pages plutot que toujours les 3 memes :
@@ -1570,12 +1613,19 @@ function renderType(){
     btns[i].style.pointerEvents = PARTY.isHost ? "auto" : "none";
     btns[i].style.opacity = PARTY.isHost ? "1" : ".5";
   }
+  var slider = $("in-runtime");
+  slider.disabled = !PARTY.isHost;
+  $("type-runtime-box").style.opacity = PARTY.isHost ? "1" : ".5";
+  if(!typeRuntimeTouched){
+    slider.value = myFilters.runtime;
+    updateRuntimeLabel();
+  }
   $("btn-type-next").style.display = PARTY.isHost ? "flex" : "none";
   $("btn-type-next").disabled = !pendingType;
   $("type-wait").style.display = PARTY.isHost ? "none" : "block";
   $("type-sub").textContent = PARTY.isHost
-    ? "Tu choisis le format de la soirée pour tout le monde."
-    : "L'hôte choisit le format de la soirée.";
+    ? "Tu choisis le format et le temps que vous avez devant vous."
+    : "L'hôte choisit le format et le temps dispo.";
 }
 
 /* ---------- ecran filtres ----------
@@ -1592,8 +1642,6 @@ function renderFilters(){
     filtersBuilt = true;
     buildProviderChips();
     buildGenreChips();
-    $("in-runtime").value = myFilters.runtime;
-    updateRuntimeLabel();
   }
   refreshFiltersStatus();
 }
@@ -1647,6 +1695,14 @@ function buildGenreChips(){
 }
 
 function refreshFiltersStatus(){
+  /* rappel de ce que l'hote a choisi, pour que chacun sache le cadre */
+  var d = PARTY.data || {};
+  var fmt = d.contentType === "movie" ? "Films"
+          : d.contentType === "tv" ? "Séries" : "Films et séries";
+  var rt = (typeof d.runtime === "number" && d.runtime < 250)
+          ? " · moins de " + fmtRuntime(d.runtime) : " · durée libre";
+  $("filters-format").textContent = fmt + rt;
+
   renderPeople($("filters-people"), true);
   var me = PARTY.data && PARTY.data.participants && PARTY.data.participants[ME.uid];
   var ready = me && me.ready;
@@ -1658,21 +1714,21 @@ function refreshFiltersStatus(){
   }
 }
 
+var typeRuntimeTouched = false;
 function updateRuntimeLabel(){
   var v = parseInt($("in-runtime").value, 10);
+  myFilters.runtime = v;
   $("runtime-val").textContent = v >= 250 ? "Peu importe" : "Moins de " + fmtRuntime(v);
 }
 
 function submitReady(){
   var me = PARTY.data && PARTY.data.participants && PARTY.data.participants[ME.uid];
   var newReady = !(me && me.ready);
-  myFilters.runtime = parseInt($("in-runtime").value, 10);
   DB.patch("/parties/" + PARTY.code + "/participants/" + ME.uid, {
     ready: newReady,
     filters: {
       providers: myFilters.providers,
-      genres: myFilters.genres,
-      runtime: myFilters.runtime
+      genres: myFilters.genres
     },
     lastSeen: Date.now()
   }).then(function(){
@@ -1697,7 +1753,7 @@ function maybeBuildDeck(){
   DB.patch("/parties/" + PARTY.code, {stage:"building"}).catch(function(){});
   loading(true, "On fouille dans les rayons...");
 
-  buildDeck(sel, d.contentType || "both").then(function(items){
+  buildDeck(sel, d.contentType || "both", d.runtime).then(function(items){
     if(!items.length){
       PARTY.generating = false;
       loading(false);
@@ -1786,35 +1842,23 @@ function posterUrl(p, size){
   return p ? IMG + (size || "w500") + p : "";
 }
 
-function cardNode(it){
-  var card = el("div", "card");
+function cardNode(it, isTop){
+  var card = el("div", "card" + (isTop ? " top" : ""));
   card.dataset.key = it.key;
+
+  var scroll = el("div", "card-scroll");
+  var hero = el("div", "card-hero");
 
   var poster = el("div", "poster");
   if(it.poster) poster.style.backgroundImage = "url('" + posterUrl(it.poster, "w500") + "')";
-  card.appendChild(poster);
-  card.appendChild(el("div", "fade"));
-
-  card.appendChild(el("div", "badge-type", it.type === "movie" ? "Film" : "Série"));
-  if(it.rating) card.appendChild(el("div", "badge-rate", "★ " + it.rating));
-
-  var yes = el("div", "stamp yes", "Oui");
-  var no  = el("div", "stamp no", "Non");
-  card.appendChild(yes); card.appendChild(no);
+  hero.appendChild(poster);
+  hero.appendChild(el("div", "fade"));
+  hero.appendChild(el("div", "badge-type", it.type === "movie" ? "Film" : "Série"));
+  if(it.rating) hero.appendChild(el("div", "badge-rate", "★ " + it.rating));
 
   var body = el("div", "body");
   body.appendChild(el("h3", "ttl", esc(it.title)));
-
-  var bits = [];
-  if(it.year) bits.push(esc(it.year));
-  if(it.type === "movie" && it.runtime) bits.push(fmtRuntime(it.runtime));
-  if(it.type === "tv"){
-    if(it.seasons) bits.push(it.seasons + (it.seasons > 1 ? " saisons" : " saison"));
-    if(it.runtime) bits.push(it.runtime + " min / ép.");
-  }
-  if(it.genres && it.genres.length) bits.push(esc(it.genres.join(", ")));
-  body.appendChild(el("div", "meta", bits.join(" <span class='dot'>•</span> ")));
-
+  body.appendChild(el("div", "meta", metaBits(it).join(" <span class='dot'>•</span> ")));
   if(it.overview) body.appendChild(el("p", "ov", esc(it.overview)));
 
   if(it.provs && it.provs.length){
@@ -1831,8 +1875,127 @@ function cardNode(it){
     });
     body.appendChild(pr);
   }
-  card.appendChild(body);
+  if(isTop){
+    body.appendChild(el("div", "scroll-hint",
+      "<span class='ch'>⌃</span> Glissez vers le haut pour la fiche <span class='ch'>⌃</span>"));
+  }
+  hero.appendChild(body);
+  scroll.appendChild(hero);
+
+  if(isTop){
+    var det = el("div", "card-detail");
+    det.innerHTML = "<div class='dt-block' style='text-align:center;opacity:.6'>" +
+                    "<p class='mono' style='font-size:11px;letter-spacing:.2em'>ON SORT LA FICHE...</p></div>";
+    scroll.appendChild(det);
+    card.__detailBox = det;
+  }
+
+  card.appendChild(scroll);
+  card.appendChild(el("div", "stamp yes", "Oui"));
+  card.appendChild(el("div", "stamp no", "Non"));
+  card.__scroll = scroll;
   return card;
+}
+
+function metaBits(it){
+  var bits = [];
+  if(it.year) bits.push(esc(it.year));
+  if(it.type === "movie" && it.runtime) bits.push(fmtRuntime(it.runtime));
+  if(it.type === "tv"){
+    if(it.seasons) bits.push(it.seasons + (it.seasons > 1 ? " saisons" : " saison"));
+    if(it.runtime) bits.push(it.runtime + " min / ép.");
+  }
+  if(it.genres && it.genres.length) bits.push(esc(it.genres.join(", ")));
+  return bits;
+}
+
+/* remplit le bas de la carte avec la fiche complete */
+function fillCardDetail(card, item){
+  var box = card.__detailBox;
+  if(!box) return;
+  fetchDetail(item).then(function(d){
+    if(!box.isConnected) return;
+    box.innerHTML = "";
+
+    if(d.overview){
+      var b1 = el("div", "dt-block");
+      b1.appendChild(el("span", "label", "Synopsis"));
+      b1.appendChild(el("p", "dt-syn", esc(d.overview)));
+      box.appendChild(b1);
+    }
+
+    if(d.trailer){
+      var b2 = el("div", "dt-block");
+      b2.appendChild(el("span", "label", "Bande-annonce"));
+      var tw = el("div", "trailer");
+      var thumb = el("img");
+      thumb.src = "https://i.ytimg.com/vi/" + d.trailer.key + "/hqdefault.jpg";
+      thumb.alt = "";
+      /* si la vignette ne charge pas, le bouton lecture reste sur fond sombre */
+      thumb.onerror = function(){ thumb.style.display = "none"; };
+      tw.appendChild(thumb);
+      tw.appendChild(el("div", "play", "<span>▶</span>"));
+      tw.onclick = function(ev){
+        ev.stopPropagation();
+        tw.innerHTML = "";
+        tw.onclick = null;
+        var f = document.createElement("iframe");
+        f.src = "https://www.youtube.com/embed/" + d.trailer.key + "?autoplay=1&rel=0";
+        f.allow = "autoplay; encrypted-media; picture-in-picture";
+        f.setAttribute("allowfullscreen", "");
+        tw.appendChild(f);
+      };
+      b2.appendChild(tw);
+      box.appendChild(b2);
+    }
+
+    if(d.cast && d.cast.length){
+      var b3 = el("div", "dt-block");
+      b3.appendChild(el("span", "label", "Au casting"));
+      var cb = el("div", "cast");
+      d.cast.slice(0, 10).forEach(function(c){
+        var itm = el("div", "cast-item");
+        var ph = el("div", "ph", c.p ? "" : "🎭");
+        if(c.p) ph.style.backgroundImage = "url('" + IMG + "w185" + c.p + "')";
+        itm.appendChild(ph);
+        itm.appendChild(el("div", "nm2", esc(c.n)));
+        if(c.r) itm.appendChild(el("div", "ro", esc(c.r)));
+        cb.appendChild(itm);
+      });
+      b3.appendChild(cb);
+      box.appendChild(b3);
+    }
+
+    if(d.makers && d.makers.length){
+      var b4 = el("div", "dt-block");
+      b4.appendChild(el("span", "label", item.type === "movie" ? "Réalisation" : "Créé par"));
+      b4.appendChild(el("p", "dt-crew", esc(d.makers.join(", "))));
+      box.appendChild(b4);
+    }
+
+    if(d.provs && d.provs.length){
+      var b5 = el("div", "dt-block");
+      b5.appendChild(el("span", "label", "Où le regarder"));
+      var ch = el("div", "chips");
+      d.provs.forEach(function(p){
+        var c = el("span", "chip");
+        if(p.l){
+          var img = el("img");
+          img.src = IMG + "w92" + p.l;
+          img.alt = "";
+          c.appendChild(img);
+        }
+        c.appendChild(el("span", null, esc(provLabel(p.n))));
+        ch.appendChild(c);
+      });
+      b5.appendChild(ch);
+      box.appendChild(b5);
+    }
+
+    box.appendChild(el("p", "hint", "Glissez à droite si ça vous tente, à gauche sinon."));
+  }).catch(function(){
+    if(box.isConnected) box.innerHTML = "<p class='hint'>Fiche indisponible pour le moment.</p>";
+  });
 }
 
 function renderDeck(){
@@ -1850,14 +2013,18 @@ function renderDeck(){
   $("swipe-actions").style.display = "flex";
 
   for(var i = Math.min(idx + 2, deck.length - 1); i >= idx; i--){
-    var n = cardNode(deck[i]);
     var depth = i - idx;
+    var n = cardNode(deck[i], depth === 0);
     n.style.transform = "scale(" + (1 - depth * 0.035) + ") translateY(" + (depth * -8) + "px)";
     n.style.zIndex = String(50 - depth);
     if(depth > 0) n.style.filter = "brightness(.82)";
     wrap.appendChild(n);
   }
-  attachGestures(wrap.lastChild);
+  var top = wrap.lastChild;
+  attachGestures(top);
+  fillCardDetail(top, deck[idx]);
+  /* la fiche de la suivante se charge en fond, elle sera instantanee */
+  if(deck[idx + 1]) fetchDetail(deck[idx + 1]).catch(function(){});
   updateDeckProgress();
 }
 
@@ -1905,52 +2072,71 @@ function updateDeckProgress(){
   $("deck-progress").textContent = deck.length ? (Math.min(idx + 1, deck.length) + " / " + deck.length) : "";
 }
 
-/* ---------- gestes ---------- */
+/* ---------- gestes ----------
+   La carte defile verticalement (fiche du film) ET se swipe
+   horizontalement (oui/non). On decide de l'intention au premier
+   mouvement : plutot lateral, on prend la main ; plutot vertical, on
+   laisse le navigateur defiler tranquillement. */
 var busy = false;
 function attachGestures(card){
   if(!card || !card.dataset.key) return;
-  var startX = 0, startY = 0, dx = 0, dy = 0, dragging = false, moved = false;
+  var startX = 0, startY = 0, dx = 0, dy = 0, mode = null, pid = null;
   var yes = card.querySelector(".stamp.yes"), no = card.querySelector(".stamp.no");
 
-  card.addEventListener("pointerdown", function(e){
-    if(busy) return;
-    dragging = true; moved = false;
-    startX = e.clientX; startY = e.clientY;
-    card.setPointerCapture(e.pointerId);
-    card.style.transition = "none";
-  });
-  card.addEventListener("pointermove", function(e){
-    if(!dragging) return;
-    dx = e.clientX - startX; dy = e.clientY - startY;
-    if(Math.abs(dx) > 6 || Math.abs(dy) > 6) moved = true;
-    var rot = dx / 18;
-    card.style.transform = "translate(" + dx + "px," + dy * 0.28 + "px) rotate(" + rot + "deg)";
-    yes.style.opacity = Math.max(0, Math.min(1, dx / 110));
-    no.style.opacity  = Math.max(0, Math.min(1, -dx / 110));
-  });
-  var end = function(e){
-    if(!dragging) return;
-    dragging = false;
-    card.style.transition = "transform .25s ease, opacity .25s ease";
-    if(!moved){
-      card.classList.toggle("open");
-      card.style.transform = "";
-      return;
-    }
-    /* vers le haut : on ouvre la fiche complete */
-    if(dy < -80 && Math.abs(dx) < 70){
-      card.style.transform = "";
-      yes.style.opacity = 0; no.style.opacity = 0;
-      openDetail(currentCardItem(), true);
-      return;
-    }
-    if(dx > 95) return fly(card, 1);
-    if(dx < -95) return fly(card, -1);
+  var reset = function(){
+    mode = null; dx = 0; dy = 0;
     card.style.transform = "";
     yes.style.opacity = 0; no.style.opacity = 0;
   };
+
+  card.addEventListener("pointerdown", function(e){
+    if(busy) return;
+    startX = e.clientX; startY = e.clientY;
+    dx = 0; dy = 0; mode = null; pid = e.pointerId;
+  });
+
+  card.addEventListener("pointermove", function(e){
+    if(pid === null || busy) return;
+    dx = e.clientX - startX;
+    dy = e.clientY - startY;
+
+    if(mode === null){
+      if(Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.2){
+        mode = "h";
+        try{ card.setPointerCapture(e.pointerId); }catch(err){}
+        card.style.transition = "none";
+      }else if(Math.abs(dy) > 12){
+        mode = "v";      // defilement : on ne touche a rien
+      }
+    }
+    if(mode !== "h") return;
+
+    var rot = dx / 18;
+    card.style.transform = "translate(" + dx + "px," + dy * 0.18 + "px) rotate(" + rot + "deg)";
+    yes.style.opacity = Math.max(0, Math.min(1, dx / 110));
+    no.style.opacity  = Math.max(0, Math.min(1, -dx / 110));
+  });
+
+  var end = function(e){
+    if(pid === null) return;
+    pid = null;
+    if(mode !== "h"){ mode = null; return; }
+    card.style.transition = "transform .25s ease, opacity .25s ease";
+    if(dx > 95) return fly(card, 1);
+    if(dx < -95) return fly(card, -1);
+    reset();
+  };
   card.addEventListener("pointerup", end);
   card.addEventListener("pointercancel", end);
+}
+
+/* fait defiler la carte jusqu'a sa fiche, ou revient a l'affiche */
+function toggleCardDetail(){
+  var card = $("deck").lastChild;
+  if(!card || !card.__scroll) return;
+  var sc = card.__scroll;
+  if(sc.scrollTop > 20) sc.scrollTo({top:0, behavior:"smooth"});
+  else sc.scrollTo({top: sc.clientHeight, behavior:"smooth"});
 }
 
 function fly(card, dir){
@@ -2164,6 +2350,7 @@ function renderDetail(item, d){
     var thumb = el("img");
     thumb.src = "https://i.ytimg.com/vi/" + d.trailer.key + "/hqdefault.jpg";
     thumb.alt = "";
+    thumb.onerror = function(){ thumb.style.display = "none"; };
     tw.appendChild(thumb);
     var play = el("div", "play", "<span>▶</span>");
     tw.appendChild(play);
@@ -2325,20 +2512,26 @@ function bind(){
   }
   $("btn-type-next").onclick = function(){
     if(!pendingType) return;
-    DB.patch("/parties/" + PARTY.code, {contentType: pendingType, stage:"filters"})
-      .catch(function(){ toast("Ça coince"); });
+    DB.patch("/parties/" + PARTY.code, {
+      contentType: pendingType,
+      runtime: parseInt($("in-runtime").value, 10),
+      stage: "filters"
+    }).catch(function(){ toast("Ça coince"); });
   };
 
   $("btn-more-prov").onclick = function(){
     showAllProviders = !showAllProviders;
     buildProviderChips();      // on ne redessine que la liste des plateformes
   };
-  $("in-runtime").addEventListener("input", updateRuntimeLabel);
+  $("in-runtime").addEventListener("input", function(){
+    typeRuntimeTouched = true;
+    updateRuntimeLabel();
+  });
   $("btn-ready").onclick = submitReady;
 
   $("btn-nope").onclick = function(){ swipeTop(-1); };
   $("btn-like").onclick = function(){ swipeTop(1); };
-  $("btn-info").onclick = function(){ openDetail(currentCardItem(), true); };
+  $("btn-info").onclick = toggleCardDetail;
 
   $("dt-back").onclick = closeDetail;
   $("dt-nope").onclick = function(){ decideFromDetail(-1); };
