@@ -224,6 +224,18 @@ input[type=text]::placeholder{color:var(--muted-2);font-weight:500;}
 .subhead span{color:var(--muted);font-weight:500;}
 .chip.sm{min-height:34px;padding:0 12px;font-size:13px;}
 
+/* ---------- plateformes cliquables dans les fiches ---------- */
+a.prov-link{text-decoration:none;color:var(--text);padding-right:10px;-webkit-tap-highlight-color:transparent;}
+a.prov-link .go{
+  display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin-left:-2px;
+  border-radius:50%;background:rgba(141,182,255,.14);color:var(--blue-soft);
+}
+a.prov-link .go svg{width:13px;height:13px;}
+a.prov-link.direct{border-color:rgba(130,140,255,.55);}
+a.prov-link.direct .go{background:var(--grad);color:#fff;}
+a.prov-link:active{background:var(--surface-2);}
+.prov-tip{margin:10px 2px 0;font-size:12.5px;color:var(--muted);}
+
 /* ---------- fin de tournee ---------- */
 .end-box{display:flex;flex-direction:column;align-items:stretch;gap:10px;}
 .end-box .big,.end-box .big-title{align-self:center;}
@@ -557,7 +569,6 @@ input[type=range]:disabled{opacity:.5;}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 </style>
 </head>
-
 <body>
 <!-- icones vectorielles partagees (degrade de la marque + pictos) -->
 <svg class="svg-defs" aria-hidden="true" focusable="false">
@@ -583,6 +594,7 @@ input[type=range]:disabled{opacity:.5;}
   <symbol id="i-chev-u" viewBox="0 0 24 24"><path d="M6 14.5l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5.5v13M5.5 12h13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M8 16L16.5 7.5M9.5 7.5h7v7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 </svg>
 
 <div id="app">
@@ -626,7 +638,7 @@ input[type=range]:disabled{opacity:.5;}
       </div>
 
       <div class="spacer" style="min-height:26px"></div>
-      <p class="hint" style="text-align:center;color:var(--muted-2)">Swipe N Watch · <span id="secret-dot">v5</span></p>
+      <p class="hint" style="text-align:center;color:var(--muted-2)">Swipe N Watch · <span id="secret-dot">v6</span></p>
     </section>
 
     <!-- ============ LOBBY ============ -->
@@ -755,6 +767,7 @@ input[type=range]:disabled{opacity:.5;}
           <div id="dt-provs-box" class="dt-block">
             <span class="label">Où le regarder</span>
             <div class="chips" id="dt-provs"></div>
+            <p class="prov-tip">Touche une plateforme pour ouvrir le titre direct dedans.</p>
           </div>
 
           <div id="dt-trailer-box" class="dt-block">
@@ -1510,8 +1523,10 @@ function toItem(kind, d){
     /* les offres avec pub passent apres l'offre principale */
     return (/with Ads/i.test(a.provider_name) ? 1 : 0) - (/with Ads/i.test(b.provider_name) ? 1 : 0);
   }).forEach(function(p){
-    if(seenP[p.provider_name]) return;
-    seenP[p.provider_name] = 1;
+    /* "Netflix" et "Netflix avec pub", c'est la meme appli : un seul logo */
+    var base = provBase(p.provider_name);
+    if(seenP[base]) return;
+    seenP[base] = 1;
     provs.push({n:p.provider_name, l:p.logo_path || ""});
   });
   var date = kind === "movie" ? d.release_date : d.first_air_date;
@@ -1629,7 +1644,7 @@ function pickTrailer(videos){
 function fetchDetail(item){
   if(detailCache[item.key]) return Promise.resolve(detailCache[item.key]);
   return tmdb("/" + item.type + "/" + item.id, {
-    append_to_response: "credits,videos,watch/providers",
+    append_to_response: "credits,videos,watch/providers,external_ids",
     include_video_language: "fr,en,null"
   }).then(function(d){
     var credits = d.credits || {};
@@ -1646,11 +1661,15 @@ function fetchDetail(item){
     var seenP = {}, provs = [];
     flat.filter(function(p){
       return !/Amazon Channel|Apple TV channel|Channel$/i.test(p.provider_name);
+    }).sort(function(a, b){
+      return (/with Ads/i.test(a.provider_name) ? 1 : 0) - (/with Ads/i.test(b.provider_name) ? 1 : 0);
     }).forEach(function(p){
-      if(seenP[p.provider_name]) return;
-      seenP[p.provider_name] = 1;
+      var base = provBase(p.provider_name);
+      if(seenP[base]) return;
+      seenP[base] = 1;
       provs.push({n:p.provider_name, l:p.logo_path || ""});
     });
+    var ext = d.external_ids || {};
 
     var out = {
       backdrop: d.backdrop_path || "",
@@ -1664,10 +1683,127 @@ function fetchDetail(item){
       provs: provs.length ? provs : (item.provs || []),
       episodes: d.number_of_episodes || 0,
       status: d.status || "",
-      tagline: d.tagline || ""
+      tagline: d.tagline || "",
+      wd: /^Q\d+$/.test(ext.wikidata_id || "") ? ext.wikidata_id : "",
+      watchLink: (wp && /^https:\/\/www\.themoviedb\.org\//.test(wp.link || "")) ? wp.link : ""
     };
     detailCache[item.key] = out;
     return out;
+  });
+}
+
+/* =====================================================================
+   LIENS DIRECTS VERS LES PLATEFORMES
+   Wikidata connait l'identifiant de beaucoup de titres chez Netflix,
+   Disney+, Apple TV, HBO Max, Crunchyroll... Quand on l'a, la pastille
+   ouvre direct la fiche du titre (et l'appli sur iPhone). Sinon elle
+   ouvre la page "Ou regarder" de TMDB, ou chaque logo renvoie pile sur
+   le bon titre chez la plateforme.
+   ===================================================================== */
+var WIKIDATA_SPARQL = "https://query.wikidata.org/sparql";
+var PLATFORM_LINKS = [
+  {re:/^Netflix/i,       ids:[["P1874", "https://www.netflix.com/title/"]]},
+  {re:/^Disney/i,        ids:[["P13902","https://www.disneyplus.com/browse/"],
+                              ["P7595", "https://www.disneyplus.com/movies/wd/"],
+                              ["P7596", "https://www.disneyplus.com/series/wp/"]]},
+  {re:/^Apple TV/i,      ids:[["P9586", "https://tv.apple.com/fr/movie/"],
+                              ["P9751", "https://tv.apple.com/fr/show/"]]},
+  {re:/Prime Video/i,    ids:[["P14462","https://www.primevideo.com/detail/"],
+                              ["P14440","https://www.primevideo.com/detail/"]]},
+  {re:/^(HBO )?Max\b/i,  ids:[["P8298", "https://play.hbomax.com/"]]},
+  {re:/^Crunchyroll/i,   ids:[["P11330","https://www.crunchyroll.com/series/"]]},
+  {re:/^MUBI/i,          ids:[["P7299", "https://mubi.com/films/"]]}
+];
+var wdLinkCache = {};
+
+/* "Netflix Standard with Ads" -> "Netflix" */
+function provBase(name){
+  return String(name || "").replace(/\s+(Standard |Basic |Basique )?with Ads$/i, "").trim();
+}
+
+function tmdbWatchUrl(item, d){
+  if(d && d.watchLink) return d.watchLink;
+  return "https://www.themoviedb.org/" + (item.type === "tv" ? "tv" : "movie") + "/" + item.id + "/watch?locale=" + APP_REGION;
+}
+
+/* identifiants plateforme du titre, d'apres Wikidata (une seule requete) */
+function platformIds(item, d){
+  if(wdLinkCache[item.key]) return wdLinkCache[item.key];
+  var props = [];
+  PLATFORM_LINKS.forEach(function(r){ r.ids.forEach(function(x){ props.push("wdt:" + x[0]); }); });
+  var subject = d && d.wd ? "wd:" + d.wd : "?item";
+  var find = d && d.wd ? "" :
+    "?item wdt:" + (item.type === "tv" ? "P4983" : "P4947") + " \"" + String(parseInt(item.id, 10)) + "\" . ";
+  var q = "SELECT ?p ?v WHERE { VALUES ?p { " + props.join(" ") + " } " + find + subject + " ?p ?v . } LIMIT 50";
+  var req = fetch(WIKIDATA_SPARQL + "?format=json&query=" + encodeURIComponent(q))
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(j){
+      var ids = {};
+      ((j && j.results && j.results.bindings) || []).forEach(function(b){
+        var p = String(b.p.value).split("/").pop();
+        var v = String(b.v.value || "");
+        /* on ne garde que des identifiants propres, rien d'autre ne finit dans un lien */
+        if(!ids[p] && /^[\w.\-\/]{1,120}$/.test(v) && v.indexOf("..") === -1) ids[p] = v;
+      });
+      return ids;
+    })
+    .catch(function(){ return {}; });
+  /* Wikidata trop lent : on garde le lien TMDB, sans bloquer personne */
+  var timeout = new Promise(function(res){ setTimeout(function(){ res(null); }, 7000); });
+  wdLinkCache[item.key] = Promise.race([req, timeout]).then(function(ids){
+    if(!ids) delete wdLinkCache[item.key];   // on retentera a la prochaine ouverture
+    return ids || {};
+  });
+  return wdLinkCache[item.key];
+}
+
+/* lien a ouvrir pour une plateforme donnee : direct si possible */
+function platformUrl(name, ids, fallback){
+  for(var i = 0; i < PLATFORM_LINKS.length; i++){
+    var r = PLATFORM_LINKS[i];
+    if(!r.re.test(name)) continue;
+    for(var k = 0; k < r.ids.length; k++){
+      var v = ids && ids[r.ids[k][0]];
+      if(v) return {url: r.ids[k][1] + v, direct: true};
+    }
+    break;
+  }
+  return {url: fallback, direct: false};
+}
+
+/* une pastille plateforme cliquable */
+function provLinkChip(p, item, d){
+  var a = el("a", "chip prov-link");
+  a.href = tmdbWatchUrl(item, d);
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  a.setAttribute("data-prov", p.n);
+  a.setAttribute("aria-label", "Ouvrir sur " + provLabel(provBase(p.n)));
+  if(p.l){
+    var img = el("img");
+    img.src = IMG + "w92" + p.l;
+    img.alt = "";
+    a.appendChild(img);
+  }
+  a.appendChild(el("span", null, esc(provLabel(provBase(p.n)))));
+  a.appendChild(el("span", "go", "<svg viewBox='0 0 24 24'><use href='#i-ext'/></svg>"));
+  /* un tap sur la pastille ne doit rien declencher d'autre dans la carte */
+  a.addEventListener("click", function(ev){ ev.stopPropagation(); });
+  return a;
+}
+
+/* remplace les liens TMDB par les liens directs quand Wikidata repond */
+function upgradeProvLinks(box, item, d){
+  if(!box || !d) return;
+  platformIds(item, d).then(function(ids){
+    if(!box.isConnected) return;
+    var fb = tmdbWatchUrl(item, d);
+    var as = box.querySelectorAll("a[data-prov]");
+    for(var i = 0; i < as.length; i++){
+      var res = platformUrl(as[i].getAttribute("data-prov"), ids, fb);
+      as[i].href = res.url;
+      as[i].classList.toggle("direct", res.direct);
+    }
   });
 }
 /* =====================================================================
@@ -2512,19 +2648,11 @@ function fillCardDetail(card, item){
       var b5 = el("div", "dt-block");
       b5.appendChild(el("span", "label", "Où le regarder"));
       var ch = el("div", "chips");
-      d.provs.forEach(function(p){
-        var c = el("span", "chip");
-        if(p.l){
-          var img = el("img");
-          img.src = IMG + "w92" + p.l;
-          img.alt = "";
-          c.appendChild(img);
-        }
-        c.appendChild(el("span", null, esc(provLabel(p.n))));
-        ch.appendChild(c);
-      });
+      d.provs.forEach(function(p){ ch.appendChild(provLinkChip(p, item, d)); });
       b5.appendChild(ch);
+      b5.appendChild(el("p", "prov-tip", "Touche une plateforme pour ouvrir le titre direct dedans."));
       box.appendChild(b5);
+      upgradeProvLinks(ch, item, d);
     }
 
     box.appendChild(el("p", "hint", "Glissez à droite si ça vous tente, à gauche sinon."));
@@ -2871,7 +2999,7 @@ function openDetail(item, fromSwipe){
   $("dt-cast-box").style.display = "none";
   $("dt-crew-box").style.display = "none";
   $("dt-provs-box").style.display = item.provs && item.provs.length ? "block" : "none";
-  fillProvChips(item.provs || []);
+  fillProvChips(item.provs || [], item, null);
   $("dt-loading").style.display = "block";
   $("dt-scroll").scrollTop = 0;
   showScreen("s-detail");
@@ -2900,20 +3028,11 @@ function detailMeta(item, d){
   return bits.join("  •  ");
 }
 
-function fillProvChips(provs){
+function fillProvChips(provs, item, d){
   var box = $("dt-provs");
   box.innerHTML = "";
-  provs.forEach(function(p){
-    var c = el("span", "chip");
-    if(p.l){
-      var img = el("img");
-      img.src = IMG + "w92" + p.l;
-      img.alt = "";
-      c.appendChild(img);
-    }
-    c.appendChild(el("span", null, esc(provLabel(p.n))));
-    box.appendChild(c);
-  });
+  provs.forEach(function(p){ box.appendChild(provLinkChip(p, item, d)); });
+  if(d) upgradeProvLinks(box, item, d);
 }
 
 function renderDetail(item, d){
@@ -2924,7 +3043,7 @@ function renderDetail(item, d){
 
   if(d.provs && d.provs.length){
     $("dt-provs-box").style.display = "block";
-    fillProvChips(d.provs);
+    fillProvChips(d.provs, item, d);
   }
 
   /* bande-annonce : miniature YouTube, la lecture ne demarre qu'au clic */
